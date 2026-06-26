@@ -593,12 +593,12 @@ def _draw_help_bar(win):
     for key, label, color in keys1:
         seg = f" [{key}]{label}"
         _safe_addstr(win, help_y - 1, x, seg, color)
-        x += len(seg)
+        x += _display_width(seg)
     x = 0
     for key, label, color in keys2:
         seg = f" [{key}]{label}"
         _safe_addstr(win, help_y, x, seg, color)
-        x += len(seg)
+        x += _display_width(seg)
     win.noutrefresh()
 
 # ========== 弹窗 ==========
