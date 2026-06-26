@@ -145,23 +145,23 @@ def _init_colors():
     global SP_LO, SP_ML, SP_MD, SP_MH, SP_HI, SP_PK
     curses.start_color()
     curses.use_default_colors()
-    # === Tokyo Night 配色 ===
-    curses.init_pair(1, 81, -1)    # 青蓝 — 可播/播放中
-    curses.init_pair(2, 210, -1)   # 柔和珊瑚红 — 不可播
-    curses.init_pair(3, 179, -1)   # 暖金 — 暂停/警告
-    curses.init_pair(4, 111, -1)   # 柔和蓝 — 标题/标号
-    curses.init_pair(5, 141, -1)   # 薰衣草紫 — 频谱/强调
-    curses.init_pair(6, 252, -1)   # 浅银灰 — 普通文字
-    curses.init_pair(7, 235, 111)  # 暗面底蓝字 — 高亮选中
-    curses.init_pair(8, 60, -1)    # 暗紫灰 — 次要文字/注释
-    curses.init_pair(9, 235, 81)   # 反色 — 状态栏: 暗底青字
-    # 频谱渐变 (低→高: 蓝 → 青 → 绿 → 金 → 红 → 紫)
-    curses.init_pair(20, 111, -1)  # 蓝   — 低
-    curses.init_pair(21, 117, -1)  # 天青 — 中低
-    curses.init_pair(22, 113, -1)  # 柔绿 — 中
-    curses.init_pair(23, 179, -1)  # 暖金 — 中高
-    curses.init_pair(24, 210, -1)  # 珊瑚 — 高
-    curses.init_pair(25, 141, -1)  # 薰紫 — 峰
+    # === 赛博霓虹配色 ===
+    curses.init_pair(1, 51, -1)     # 亮青 — 可播/播放中
+    curses.init_pair(2, 196, -1)    # 霓虹红 — 不可播/错误
+    curses.init_pair(3, 226, -1)    # 亮黄 — 暂停/警告
+    curses.init_pair(4, 75, -1)     # 电蓝 — 标题/标号
+    curses.init_pair(5, 201, -1)    # 热粉紫 — 频谱/强调
+    curses.init_pair(6, 255, -1)    # 白 — 普通文字
+    curses.init_pair(7, 235, 51)    # 暗底青字 — 高亮选中
+    curses.init_pair(8, 244, -1)    # 灰 — 次要文字/注释
+    curses.init_pair(9, 235, 51)    # 反色 — 状态栏: 暗底青字
+    # 频谱渐变 (霓虹: 蓝 → 青 → 绿 → 黄 → 红 → 粉)
+    curses.init_pair(20, 27, -1)    # 蓝   — 低
+    curses.init_pair(21, 45, -1)    # 青   — 中低
+    curses.init_pair(22, 46, -1)    # 绿   — 中
+    curses.init_pair(23, 226, -1)   # 黄   — 中高
+    curses.init_pair(24, 196, -1)   # 红   — 高
+    curses.init_pair(25, 201, -1)   # 粉紫 — 峰
 
     HL = curses.color_pair(7) | curses.A_BOLD
     GR = curses.color_pair(1) | curses.A_BOLD
@@ -195,17 +195,18 @@ def _hline(win, y, x, width, attr=DM):
     _safe_addstr(win, y, x, "─" * width, attr)
 
 def _draw_section_header(win, y, x, title, width, attr=CY):
-    """分区标题: ═══ TITLE ══════════════════════════"""
-    head = f"═══ {title} "
+    """分区标题: ╔═══ TITLE ═══╗ 风格"""
+    head = f"╔═══ {title} ═══"
     _safe_addstr(win, y, x, head, attr | curses.A_BOLD)
-    remaining = width - len(head)
-    if remaining > 3:
-        _safe_addstr(win, y, x + len(head), "─" * remaining, DM)
+    remaining = width - len(head) - 1
+    if remaining > 1:
+        _safe_addstr(win, y, x + len(head), "╗", attr | curses.A_BOLD)
+        _safe_addstr(win, y, x + len(head) + 1, "═" * remaining, DM)
 
 def _draw_vsep(win, y_start, y_end, x):
-    """垂直分隔线 │"""
+    """垂直分隔线 ┃"""
     for row in range(y_start, y_end):
-        _safe_addstr(win, row, x, "│", DM)
+        _safe_addstr(win, row, x, "┃", CY | curses.A_BOLD)
 
 def _draw_mini_bar(win, y, x, dur_sec, max_dur_sec, width=6):
     """微型时长条: ████░░ 表示歌曲时长占列表中最大时长的比例"""
@@ -339,12 +340,15 @@ def _draw_status_bar(win):
         _safe_addstr(win, 0, x, label, SB)
         x += len(label)
 
-    # 右: 时间 + 歌曲计数
+    # 右: 时间 + PID + 歌曲计数
     now_str = __import__("time").strftime("%H:%M")
     clock = f" {now_str} "
+    pid_tag = f" PID:{__import__('os').getpid()} "
     count = f" {len(_songs)} 首 "
-    _safe_addstr(win, 0, w - len(count) - len(clock), clock, SB | curses.A_BOLD)
-    _safe_addstr(win, 0, w - len(count), count, SB)
+    right = clock + pid_tag + count
+    _safe_addstr(win, 0, w - len(right), clock, SB | curses.A_BOLD)
+    _safe_addstr(win, 0, w - len(right) + len(clock), pid_tag, SB)
+    _safe_addstr(win, 0, w - len(right) + len(clock) + len(pid_tag), count, SB)
     win.noutrefresh()
 
 
@@ -783,7 +787,7 @@ def _spinner_char() -> str:
 
 
 def _show_startup_banner(screen):
-    """启动时显示 ASCII 艺术字横幅"""
+    """启动时显示 ASCII 艺术字横幅 + glitch 闪烁"""
     h, w = screen.getmaxyx()
     screen.erase()
     lines = _STARTUP_BANNER
@@ -794,23 +798,53 @@ def _show_startup_banner(screen):
 
     # 渐变色: 从上到下 CY → MG
     colors = [CY, CY, MG, MG, CY, CY, DM, YW]
+
+    import time
+    # Glitch 阶段: 快速闪烁色彩
+    for tick in range(8):
+        screen.erase()
+        glitch_colors = [
+            [MG, MG, CY, CY, MG, MG, CY, RD],
+            [CY, CY, RD, MG, CY, CY, MG, YW],
+            [MG, RD, CY, MG, RD, MG, CY, CY],
+            [CY, MG, MG, CY, CY, RD, MG, MG],
+        ][tick % 4]
+        for i, line in enumerate(lines):
+            a = glitch_colors[i] if i < len(glitch_colors) else DM
+            # 阴影效果 (偏移1格用dim)
+            if i < 6:
+                _safe_addstr(screen, start_y + i + 1, start_x + 1, line, DM)
+            _safe_addstr(screen, start_y + i, start_x, line, a | curses.A_BOLD)
+        _safe_addstr(screen, start_y + banner_h + 1, start_x,
+                     " [ SYS ONLINE ]  [ PID:{} ]".format(__import__('os').getpid())[:w], CY | curses.A_BOLD)
+        screen.refresh()
+        time.sleep(0.06)
+
+    # 稳定显示
+    screen.erase()
     for i, line in enumerate(lines):
         if i < len(colors):
             attr = colors[i] | curses.A_BOLD
         else:
             attr = DM
+        if i < 6:
+            _safe_addstr(screen, start_y + i + 1, start_x + 1, line, DM)
         _safe_addstr(screen, start_y + i, start_x, line, attr)
 
-    _safe_addstr(screen, start_y + banner_h + 1, start_x,
-                 f"  v{__import__('config').load().get('device_id', '?')[:8]}", DM)
+    # HUD 状态行
+    hud = " [ SYS ONLINE ]  [ PID:{} ]  [ v2.0.0 ]".format(__import__('os').getpid())
+    _safe_addstr(screen, start_y + banner_h + 1, start_x, hud[:w], CY | curses.A_BOLD)
+
+    # 底部提示
+    prompt = " >>> PRESS ANY KEY TO CONTINUE <<< "
+    px = max((w - len(prompt)) // 2, 0)
+    _safe_addstr(screen, h - 3, px, prompt, YW | curses.A_BOLD)
     screen.refresh()
 
-    import time
-    for _ in range(25):  # ~1.5s
+    for _ in range(30):
         time.sleep(0.06)
-        # 每帧刷新让 spinner 有动画感
         k = screen.getch()
-        if k != -1:  # 用户按下任意键跳过横幅
+        if k != -1:
             break
     screen.erase()
 
