@@ -558,12 +558,15 @@ def _draw_right_panel(win, content_h, content_y, split_x):
 
 
 def _draw_help_bar(win):
-    """底部命令栏 (最后一行或两行)"""
+    """底部命令栏 (双行)"""
     h, w = win.getmaxyx()
     help_y = h - 1
 
-    # 分组: 播放控制 + 列表/功能
-    keys_group1 = [
+    # 分隔线
+    _hline(win, help_y - 2, 0, w, DM)
+
+    # 第一行: 播放控制
+    keys1 = [
         ("ENTER", "播放", GR),
         ("SPC", "暂停", YW),
         ("n", "下一首", FG),
@@ -572,7 +575,8 @@ def _draw_help_bar(win):
         ("r", "随机", FG),
         ("c", "循环", FG),
     ]
-    keys_group2 = [
+    # 第二行: 功能列表
+    keys2 = [
         ("s", "搜索", CY),
         ("p", "榜单", CY),
         ("y", "每日推荐", CY),
@@ -585,35 +589,16 @@ def _draw_help_bar(win):
         ("q", "退出", RD),
     ]
 
-    # 计算两组视觉宽度, 决定单行还是双行
-    def _seg_width(items):
-        return sum(
-            2 if ord(c) > 0x2E80 else 1
-            for k, label, _ in items
-            for c in f" [{k}]{label}"
-        )
-
-    if _seg_width(keys_group1) + _seg_width(keys_group2) + 4 < w:
-        # 单行显示全部
-        _hline(win, help_y - 1, 0, w, DM)
-        x = 0
-        for key, label, color in keys_group1 + keys_group2:
-            seg = f" [{key}]{label}"
-            _safe_addstr(win, help_y, x, seg, color)
-            x += len(seg)
-    else:
-        # 双行显示
-        _hline(win, help_y - 2, 0, w, DM)
-        x = 0
-        for key, label, color in keys_group1:
-            seg = f" [{key}]{label}"
-            _safe_addstr(win, help_y - 1, x, seg, color)
-            x += len(seg)
-        x = 0
-        for key, label, color in keys_group2:
-            seg = f" [{key}]{label}"
-            _safe_addstr(win, help_y, x, seg, color)
-            x += len(seg)
+    x = 0
+    for key, label, color in keys1:
+        seg = f" [{key}]{label}"
+        _safe_addstr(win, help_y - 1, x, seg, color)
+        x += len(seg)
+    x = 0
+    for key, label, color in keys2:
+        seg = f" [{key}]{label}"
+        _safe_addstr(win, help_y, x, seg, color)
+        x += len(seg)
     win.noutrefresh()
 
 # ========== 弹窗 ==========
