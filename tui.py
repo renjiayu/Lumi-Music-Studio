@@ -1007,8 +1007,8 @@ def _do_qrcode_login(screen):
         orig_timeout = screen.gettimeout()
     except AttributeError:
         orig_timeout = 60  # stdscr.timeout(60) default in main()
-    screen.timeout(2000)  # 2s 轮询
-    while waited < 120:
+    screen.timeout(800)  # 800ms 轮询
+    while waited < 150:
         _safe_addstr(popup, y + 2, 1, f" {' ' * 14} ", DM)
         dots = "." * (1 + waited % 10)
         _safe_addstr(popup, y + 2, 1, f" {dots} ", DM)
@@ -1023,7 +1023,7 @@ def _do_qrcode_login(screen):
             # 极低概率的未捕获异常, 保持弹窗不崩溃
             _safe_addstr(popup, y + 2, 1, " 网络异常, 重试中  ", RD)
             popup.refresh()
-            waited += 2
+            waited += 1
             continue
         code = r.get("code", 0)
         if code == 803:
@@ -1048,12 +1048,12 @@ def _do_qrcode_login(screen):
             err = r.get("error", "请求失败")
             _safe_addstr(popup, y + 2, 1, f" {err}, 重试中    ", RD)
             popup.refresh()
-            waited += 2
+            waited += 1
             continue
         elif code == 802:
             nick = r.get("nickname", "")
             _safe_addstr(popup, y + 1, 1, f" {nick} 已扫码, 请在 APP 确认 ", GR | curses.A_BOLD)
-        waited += 2
+        waited += 1
     screen.timeout(orig_timeout)
     _popup_message(screen, "扫码登录超时", RD, 1.5)
 

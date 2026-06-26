@@ -9,8 +9,6 @@ import sys
 import threading
 from pathlib import Path
 
-# 确保能找到 api 模块（for api.c）
-sys.path.insert(0, str(Path(__file__).parent))
 import config as _cfg
 
 _proc = None
