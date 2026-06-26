@@ -488,7 +488,7 @@ def _auto_play_next():
 
 def _gst_play_with_viz(url, title):
     """GStreamer 流式播放 + 频谱可视化 — souphttpsrc 显式管道, 无 uridecodebin"""
-    global _playing, _paused, _gst_pipeline
+    global _playing, _paused, _gst_pipeline, _block_probe_id, _tee_audio_pad
     pipeline = None
     naturally_ended = False
     try:

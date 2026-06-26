@@ -986,7 +986,10 @@ def _do_qrcode_login(screen):
     _safe_addstr(popup, y + 1, 1, " 等待中... (Q=退出) ", DM)
 
     waited = 0
-    orig_timeout = screen.gettimeout()
+    try:
+        orig_timeout = screen.gettimeout()
+    except AttributeError:
+        orig_timeout = 60  # stdscr.timeout(60) default in main()
     screen.timeout(2000)  # 2s 轮询
     while waited < 120:
         _safe_addstr(popup, y + 2, 1, f" {' ' * 10} ", DM)
