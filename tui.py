@@ -562,9 +562,6 @@ def _draw_help_bar(win):
     h, w = win.getmaxyx()
     help_y = h - 1
 
-    # 分隔线
-    _hline(win, help_y - 1, 0, w, DM)
-
     # 分组: 播放控制 + 列表/功能
     keys_group1 = [
         ("ENTER", "播放", GR),
@@ -598,6 +595,7 @@ def _draw_help_bar(win):
 
     if _seg_width(keys_group1) + _seg_width(keys_group2) + 4 < w:
         # 单行显示全部
+        _hline(win, help_y - 1, 0, w, DM)
         x = 0
         for key, label, color in keys_group1 + keys_group2:
             seg = f" [{key}]{label}"
@@ -605,6 +603,7 @@ def _draw_help_bar(win):
             x += len(seg)
     else:
         # 双行显示
+        _hline(win, help_y - 2, 0, w, DM)
         x = 0
         for key, label, color in keys_group1:
             seg = f" [{key}]{label}"
