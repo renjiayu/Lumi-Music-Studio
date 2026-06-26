@@ -545,7 +545,7 @@ def _draw_help_bar(win):
         ("f", "筛选", FG),
         ("d", "下载", FG),
         ("l", "歌词", FG),
-        ("L", "扫码登录", YW),
+        ("Q", "扫码登录", YW),
         ("q", "退出", RD),
     ]
     x = 0
@@ -736,7 +736,7 @@ def main(stdscr):
 
     # 首次启动未登录时主动提示
     if not logged_in:
-        _popup_message(stdscr, "未登录, 按 Shift+L 扫码登录", YW, 2.0)
+        _popup_message(stdscr, "未登录, 按 Shift+Q 扫码登录", YW, 2.0)
 
     while True:
         h, w = stdscr.getmaxyx()
@@ -867,7 +867,7 @@ def main(stdscr):
                 _popup_lyrics(stdscr, ns["id"], ns["name"])
 
         # --- 扫码登录 ---
-        elif key == ord("L"):
+        elif key == ord("L") or key == ord("Q"):
             _do_qrcode_login(stdscr)
 
         # --- 下载 ---
