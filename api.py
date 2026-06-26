@@ -134,7 +134,6 @@ def _cookie_jar_path() -> Path:
 
 def save_cookie_jar():
     """保存完整 Cookie Jar 到文件 (含 MUSIC_U, __csrf, MUSIC_A 等)"""
-    import json as _json
     s = get_session()
     cookies = {}
     for c in s.cookies:
@@ -150,7 +149,7 @@ def save_cookie_jar():
         _cookie_jar_path().parent.mkdir(parents=True, exist_ok=True)
         tmp_path = _cookie_jar_path().with_suffix(".tmp")
         with open(tmp_path, "w") as f:
-            _json.dump(cookies, f, ensure_ascii=False, indent=2)
+            json.dump(cookies, f, ensure_ascii=False, indent=2)
         os.chmod(tmp_path, 0o600)
         os.replace(tmp_path, _cookie_jar_path())
     except Exception:
@@ -159,13 +158,12 @@ def save_cookie_jar():
 
 def load_cookie_jar() -> bool:
     """从文件恢复完整 Cookie Jar, 返回是否成功"""
-    import json as _json
     path = _cookie_jar_path()
     if not path.exists():
         return False
     try:
         with open(path) as f:
-            cookies = _json.load(f)
+            cookies = json.load(f)
     except (json.JSONDecodeError, OSError):
         return False
     s = get_session()
@@ -280,10 +278,8 @@ def get_device_id() -> str:
     if device_id:
         return device_id
     # 生成新设备 ID: 随机 16 位 hex
-    import random as _random
-    import string as _string
-    chars = _string.hexdigits.lower()
-    device_id = "".join(_random.choices(chars, k=16))
+    chars = string.hexdigits.lower()
+    device_id = "".join(random.choices(chars, k=16))
     _cfg.set_key("device_id", device_id)
     return device_id
 
