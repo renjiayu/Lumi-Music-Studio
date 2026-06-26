@@ -1027,17 +1027,28 @@ def _do_qrcode_login(screen):
         code = r.get("code", 0)
         if code == 803:
             screen.timeout(orig_timeout)
-            _popup_message(screen, "登录成功!", GR, 1.0)
-            api.save_cookie_jar()
+            # 优先从响应体 cookie 字段提取, 其次从 session cookies
+            cookie_str = r.get("cookie", "")
             music_u = None
-            for cookie in api.get_session().cookies:
-                if cookie.name == "MUSIC_U" and cookie.value:
-                    music_u = cookie.value
-                    break
+            if cookie_str:
+                for part in cookie_str.split(";"):
+                    part = part.strip()
+                    if part.startswith("MUSIC_U="):
+                        music_u = part.split("=", 1)[1]
+                        break
+            if not music_u:
+                api.save_cookie_jar()
+                for cookie in api.get_session().cookies:
+                    if cookie.name == "MUSIC_U" and cookie.value:
+                        music_u = cookie.value
+                        break
             if music_u:
+                api.set_cookie(f"MUSIC_U={music_u}")
+                api.save_cookie_jar()
                 import config
                 config.set_key("music_u", music_u)
-                _popup_message(screen, "Cookie 已保存", GR, 1.5)
+            api.save_cookie_jar()
+            _popup_message(screen, "登录成功!", GR, 1.0)
             return
         elif code == 800:
             screen.timeout(orig_timeout)
@@ -1052,6 +1063,11 @@ def _do_qrcode_login(screen):
         elif code == 802:
             nick = r.get("nickname", "")
             _safe_addstr(popup, y + 1, 1, f" {nick} 已扫码, 请在 APP 确认 ", GR | curses.A_BOLD)
+        elif code == 801:
+            _safe_addstr(popup, y + 1, 1, " 等待扫码... (Q=退出)        ", DM)
+        else:
+            # 显示未知响应码 (用于调试 API 变化)
+            _safe_addstr(popup, y + 2, 1, f" 响应码: {code}           ", YW)
         waited += 1
     screen.timeout(orig_timeout)
     _popup_message(screen, "扫码登录超时", RD, 1.5)
