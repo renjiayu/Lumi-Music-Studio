@@ -399,7 +399,15 @@ def _draw_left_panel(win, content_h, content_y, left_w):
         s = _songs[song_idx]
         ns = api.normalize_song(s)
         ok = ns["id"] in _playable
-        name = ns["name"][:name_max]
+        # 按视觉宽度截断歌名 (中文字符占2列)
+        name_full = ns["name"]
+        name = ""
+        w = 0
+        for ch in name_full:
+            cw = 2 if ord(ch) > 0x2E80 else 1
+            if w + cw > name_max: break
+            name += ch
+            w += cw
         dur_sec = ns.get("duration", 0) // 1000
         dur_str = f"{dur_sec // 60}:{dur_sec % 60:02d}"
         row = content_y + screen_row
@@ -408,9 +416,12 @@ def _draw_left_panel(win, content_h, content_y, left_w):
         idx_str = f"{di:>3}"
 
         if di == _cursor:
-            # 高亮整行
+            # 高亮整行 (按视觉宽度填充)
             line = f" {mark} {idx_str}  {name}"
-            line = line.ljust(left_w - dur_w - mini_bar_w - 2)
+            visual_w = _display_width(line)
+            target_w = left_w - dur_w - mini_bar_w - 2
+            if visual_w < target_w:
+                line += " " * (target_w - visual_w)
             line += f" {dur_str}  "
             _safe_addstr(win, row, 0, line[:left_w], HL)
             _draw_mini_bar(win, row, left_w - mini_bar_w, dur_sec, _max_duration, mini_bar_w)
