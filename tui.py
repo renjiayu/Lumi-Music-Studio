@@ -46,7 +46,7 @@ _lyrics_thread = None  # 当前歌词获取线程 (防止重复创建)
 # 加载动画帧 (braille spinner)
 _SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
-# 启动横幅 ASCII art
+# 启动横幅 ASCII art (纯白简洁版)
 _STARTUP_BANNER = [
     "  ██╗     ██╗   ██╗███╗   ███╗██╗",
     "  ██║     ██║   ██║████╗ ████║██║",
@@ -55,7 +55,8 @@ _STARTUP_BANNER = [
     "  ███████╗╚██████╔╝██║ ╚═╝ ██║██║",
     "  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝",
     "",
-    "        ♪ 网易云音乐 TUI ♪",
+    "              LUMI",
+    "       ♪ 网易云音乐 TUI ♪",
 ]
 
 # 螃蟹吉祥物 ASCII art — 各播放状态表情
@@ -771,60 +772,39 @@ def _spinner_char() -> str:
 
 
 def _show_startup_banner(screen):
-    """启动时显示 ASCII 艺术字横幅 + glitch 闪烁"""
+    """启动时显示 ASCII 艺术字横幅 (纯白简洁)"""
     h, w = screen.getmaxyx()
     screen.erase()
     lines = _STARTUP_BANNER
     banner_h = len(lines)
     banner_w = max(len(line) for line in lines)
-    start_y = (h - banner_h) // 2
+    start_y = (h - banner_h) // 2 - 1
     start_x = max((w - banner_w) // 2, 0)
 
-    # 渐变色: 从上到下 CY → MG
-    colors = [CY, CY, MG, MG, CY, CY, DM, YW]
-
-    import time
-    # Glitch 阶段: 快速闪烁色彩
-    for tick in range(8):
-        screen.erase()
-        glitch_colors = [
-            [MG, MG, CY, CY, MG, MG, CY, RD],
-            [CY, CY, RD, MG, CY, CY, MG, YW],
-            [MG, RD, CY, MG, RD, MG, CY, CY],
-            [CY, MG, MG, CY, CY, RD, MG, MG],
-        ][tick % 4]
-        for i, line in enumerate(lines):
-            a = glitch_colors[i] if i < len(glitch_colors) else DM
-            # 阴影效果 (偏移1格用dim)
-            if i < 6:
-                _safe_addstr(screen, start_y + i + 1, start_x + 1, line, DM)
-            _safe_addstr(screen, start_y + i, start_x, line, a | curses.A_BOLD)
-        _safe_addstr(screen, start_y + banner_h + 1, start_x,
-                     " [ SYS ONLINE ]  [ PID:{} ]".format(__import__('os').getpid())[:w], CY | curses.A_BOLD)
-        screen.refresh()
-        time.sleep(0.06)
-
-    # 稳定显示
-    screen.erase()
+    # 纯白文字 + 副标题暖色
     for i, line in enumerate(lines):
-        if i < len(colors):
-            attr = colors[i] | curses.A_BOLD
+        if i < 6:
+            attr = FG | curses.A_BOLD  # 纯白粗体
+        elif "LUMI" in line:
+            attr = CY | curses.A_BOLD  # 品牌名亮青
         else:
-            attr = DM
+            attr = DM  # 副标题灰
+        # 阴影效果
         if i < 6:
             _safe_addstr(screen, start_y + i + 1, start_x + 1, line, DM)
         _safe_addstr(screen, start_y + i, start_x, line, attr)
 
     # HUD 状态行
     hud = " [ SYS ONLINE ]  [ PID:{} ]  [ v2.0.0 ]".format(__import__('os').getpid())
-    _safe_addstr(screen, start_y + banner_h + 1, start_x, hud[:w], CY | curses.A_BOLD)
+    _safe_addstr(screen, start_y + banner_h + 1, start_x, hud, DM)
 
     # 底部提示
     prompt = " >>> PRESS ANY KEY TO CONTINUE <<< "
     px = max((w - len(prompt)) // 2, 0)
-    _safe_addstr(screen, h - 3, px, prompt, YW | curses.A_BOLD)
+    _safe_addstr(screen, h - 3, px, prompt, DM | curses.A_BOLD)
     screen.refresh()
 
+    import time
     for _ in range(30):
         time.sleep(0.06)
         k = screen.getch()
