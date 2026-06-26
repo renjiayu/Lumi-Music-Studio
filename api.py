@@ -309,13 +309,17 @@ def _get(uri: str, params: dict = None) -> dict:
 
 
 def _post_weapi(uri: str, data: dict = None, csrf_token: str = "") -> dict:
-    """POST 请求，使用 WeAPI (AES+RSA) 加密，自动注入设备 ID"""
+    """POST 请求，使用 WeAPI (AES+RSA) 加密，自动注入设备 ID.
+
+    设备 ID 不注入 login 系列的端点（key/unikey/check/refresh），
+    这些端点有独立的鉴权逻辑。
+    """
     import weapi
     s = get_session()
     payload = data or {}
     payload["csrf_token"] = csrf_token
-    # 注入设备 ID (login/token/refresh 等端点不需要)
-    if "/login/" not in uri or "/token/refresh" in uri:
+    # 只在非 login 端点注入设备 ID
+    if "login" not in uri.lower():
         try:
             payload["sDeviceId"] = get_device_id()
         except Exception:
