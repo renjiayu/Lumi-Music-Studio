@@ -101,7 +101,7 @@ def set_cookie(cookie_str: str):
             s.cookies.set(k.strip(), v.strip())
     # 验证登录
     try:
-        r = s.get(f"{BASE_URL}/api/nuser/account/get")
+        r = s.get(f"{BASE_URL}/api/nuser/account/get", timeout=15)
         if r.json().get("code") == 200:
             save_cookie_jar()
             return True, "登录成功"
@@ -303,15 +303,20 @@ def _decode_response(r):
     return r.text
 
 
-def _get(uri: str, params: dict = None) -> dict:
+def _get(uri: str, params: dict = None, timeout: int = 20) -> dict:
     """GET 请求，自动处理拼接 JSON 和 brotli 压缩"""
     s = get_session()
-    r = s.get(f"{BASE_URL}{uri}", params=params)
+    try:
+        r = s.get(f"{BASE_URL}{uri}", params=params, timeout=timeout)
+    except requests.exceptions.Timeout:
+        return {"code": -1, "error": "请求超时"}
+    except requests.exceptions.ConnectionError:
+        return {"code": -1, "error": "网络连接失败"}
     text = _decode_response(r)
     return _parse_json(text)
 
 
-def _post_weapi(uri: str, data: dict = None, csrf_token: str = "") -> dict:
+def _post_weapi(uri: str, data: dict = None, csrf_token: str = "", timeout: int = 20) -> dict:
     """POST 请求，使用 WeAPI (AES+RSA) 加密，自动注入设备 ID.
 
     设备 ID 不注入 login 系列的端点（key/unikey/check/refresh），
@@ -329,11 +334,17 @@ def _post_weapi(uri: str, data: dict = None, csrf_token: str = "") -> dict:
             import sys
             print(f"  ⚠ 获取设备ID失败: {e}", file=sys.stderr)
     params, enc_sec_key = weapi.encrypt(payload)
-    r = s.post(
-        f"{BASE_URL}{uri}?csrf_token={csrf_token}",
-        data={"params": params, "encSecKey": enc_sec_key},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
+    try:
+        r = s.post(
+            f"{BASE_URL}{uri}?csrf_token={csrf_token}",
+            data={"params": params, "encSecKey": enc_sec_key},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=timeout,
+        )
+    except requests.exceptions.Timeout:
+        return {"code": -1, "error": "请求超时"}
+    except requests.exceptions.ConnectionError:
+        return {"code": -1, "error": "网络连接失败"}
     text = _decode_response(r)
     return _parse_json(text)
 

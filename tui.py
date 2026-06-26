@@ -560,7 +560,7 @@ def _draw_help_bar(win):
 
 def _modal_input(screen, prompt):
     h, w = screen.getmaxyx()
-    pw = min(len(prompt) + 40, w - 4)
+    pw = min(_display_width(prompt) + 40, w - 4)
     popup = curses.newwin(3, pw, h // 2 - 1, (w - pw) // 2)
     popup.border()
     _safe_addstr(popup, 0, 2, f" {prompt} ", CY | curses.A_BOLD)
@@ -608,12 +608,29 @@ def _popup_lyrics(screen, song_id, title):
         elif key == curses.KEY_UP and scroll > 0: scroll -= 1
         elif key == curses.KEY_DOWN and scroll < len(lines) - ph + 2: scroll += 1
 
+def _display_width(text: str) -> int:
+    """计算字符串在终端中的视觉宽度 (CJK 字符占 2 列)"""
+    width = 0
+    for ch in text:
+        cp = ord(ch)
+        if cp >= 0x2E80 and cp <= 0x9FFF:   # CJK Radicals + Unified Ideographs
+            width += 2
+        elif cp >= 0x3000 and cp <= 0x303F:  # CJK Symbols and Punctuation
+            width += 2
+        elif cp >= 0xFF00 and cp <= 0xFFEF:  # Fullwidth Forms
+            width += 2
+        else:
+            width += 1
+    return width
+
+
 def _popup_message(screen, text, color=GR, duration=1.5):
     h, w = screen.getmaxyx()
-    pw = min(len(text) + 6, w - 4)
+    tw = _display_width(text)
+    pw = min(tw + 6, w - 4)
     popup = curses.newwin(3, pw, h // 2 - 1, (w - pw) // 2)
     popup.border()
-    _safe_addstr(popup, 1, 2, text.center(pw - 4), color | curses.A_BOLD)
+    _safe_addstr(popup, 1, 2, text, color | curses.A_BOLD)
     popup.refresh()
     time.sleep(duration)
 
@@ -992,7 +1009,7 @@ def _do_qrcode_login(screen):
         orig_timeout = 60  # stdscr.timeout(60) default in main()
     screen.timeout(2000)  # 2s 轮询
     while waited < 120:
-        _safe_addstr(popup, y + 2, 1, f" {' ' * 10} ", DM)
+        _safe_addstr(popup, y + 2, 1, f" {' ' * 14} ", DM)
         dots = "." * (1 + waited % 10)
         _safe_addstr(popup, y + 2, 1, f" {dots} ", DM)
         popup.refresh()
@@ -1000,7 +1017,14 @@ def _do_qrcode_login(screen):
         if k == ord("q") or k == ord("Q"):
             screen.timeout(orig_timeout)
             return
-        r = api.qrcode_login_check(key)
+        try:
+            r = api.qrcode_login_check(key)
+        except Exception:
+            # 极低概率的未捕获异常, 保持弹窗不崩溃
+            _safe_addstr(popup, y + 2, 1, " 网络异常, 重试中  ", RD)
+            popup.refresh()
+            waited += 2
+            continue
         code = r.get("code", 0)
         if code == 803:
             screen.timeout(orig_timeout)
@@ -1020,6 +1044,12 @@ def _do_qrcode_login(screen):
             screen.timeout(orig_timeout)
             _popup_message(screen, "二维码已过期", RD, 1.5)
             return
+        elif code == -1:
+            err = r.get("error", "请求失败")
+            _safe_addstr(popup, y + 2, 1, f" {err}, 重试中    ", RD)
+            popup.refresh()
+            waited += 2
+            continue
         elif code == 802:
             nick = r.get("nickname", "")
             _safe_addstr(popup, y + 1, 1, f" {nick} 已扫码, 请在 APP 确认 ", GR | curses.A_BOLD)
