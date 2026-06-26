@@ -43,6 +43,8 @@ for i in range(30):
     code = r.get("code", 0)
     msg = r.get("message", "")
 
+    security_done = False  # 跟踪 8821 是否已处理
+
     print(f"  [{i*2}s] code={code}", end="")
     if msg:
         print(f"  message={msg}", end="")
@@ -82,13 +84,23 @@ for i in range(30):
     elif code == 801:
         print("  (等待扫码...)")
     elif code == 8821:
-        redirect_url = r.get("redirectUrl", "")
-        print("  安全校验中, 跟随跳转...", end="")
-        if redirect_url:
-            api.qrcode_follow_redirect(redirect_url)
-            print("  ✓")
+        if not security_done:
+            security_done = True
+            redirect_url = r.get("redirectUrl", "")
+            print("  安全校验中, 跟随跳转...", end="", flush=True)
+            if redirect_url:
+                ok = api.qrcode_follow_redirect(redirect_url)
+                print(f"  {'✓' if ok else '✗'}")
+                if ok:
+                    cookies = {c.name: c.value[:20] for c in api.get_session().cookies if "163" in (c.domain or "")}
+                    if cookies:
+                        print(f"    session cookies: {cookies}")
+            else:
+                print("  ✗ 无跳转链接")
+            print(f"    原始响应: {json.dumps(r, ensure_ascii=False)[:300]}")
         else:
-            print("  ✗ 无跳转链接")
+            # 已处理过跳转, 简短输出
+            print("  (等待安全校验通过...)")
     elif code == -1:
         print(f"  ✗ 错误: {r.get('error', '未知')}")
     else:

@@ -494,6 +494,8 @@ def qrcode_follow_redirect(redirect_url: str) -> bool:
         s = get_session()
         r = s.get(redirect_url, headers=HEADERS, timeout=15, allow_redirects=True)
         r.raise_for_status()
+        # 把跳转后 set-cookie 也保存到 jar
+        save_cookie_jar()
         return True
     except Exception:
         return False

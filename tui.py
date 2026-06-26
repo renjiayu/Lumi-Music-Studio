@@ -1002,6 +1002,7 @@ def _do_qrcode_login(screen):
     _safe_addstr(popup, y + 1, 1, " 等待中... (Q=退出) ", DM)
 
     waited = 0
+    security_done = False  # 是否已完成 8821 安全校验跳转
     try:
         orig_timeout = screen.gettimeout()
     except AttributeError:
@@ -1064,13 +1065,15 @@ def _do_qrcode_login(screen):
             nick = r.get("nickname", "")
             _safe_addstr(popup, y + 1, 1, f" {nick} 已扫码, 请在 APP 确认 ", GR | curses.A_BOLD)
         elif code == 8821:
-            # 安全校验跳转: 跟随 redirectUrl 获取额外 cookie
-            redirect_url = r.get("redirectUrl", "")
-            _safe_addstr(popup, y + 2, 1, " 安全校验中...           ", YW)
-            popup.refresh()
-            if redirect_url:
-                api.qrcode_follow_redirect(redirect_url)
-            # 继续轮询, 等待 code 803
+            if not security_done:
+                security_done = True
+                redirect_url = r.get("redirectUrl", "")
+                _safe_addstr(popup, y + 2, 1, " 安全校验中...           ", YW)
+                popup.refresh()
+                if redirect_url:
+                    api.qrcode_follow_redirect(redirect_url)
+            else:
+                _safe_addstr(popup, y + 2, 1, " 等待安全校验通过...      ", DM)
         elif code == 801:
             _safe_addstr(popup, y + 1, 1, " 等待扫码... (Q=退出)        ", DM)
         else:
