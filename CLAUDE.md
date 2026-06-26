@@ -88,8 +88,8 @@ Priority: GStreamer (souphttpsrc streaming) → pygame (download-then-play fallb
 ### Curses TUI keys
 
 ```
-ENTER play    SPC pause    n next    b prev    +/- seek
-r shuffle     c loop       s search  p chart   y daily
-m mine        v viz        f filter  d dl      l lyric
-Q/Shift+Q     QR login     q quit
+ENTER 播放      SPC 暂停      n 下一首     b 上一首     +/- 快进/退
+r 随机          c 循环        s 搜索       p 榜单       y 每日推荐
+m 我的歌单      v 频谱        f 筛选       d 下载       l 歌词
+Q/Shift+Q      扫码登录      q 退出
 ```
