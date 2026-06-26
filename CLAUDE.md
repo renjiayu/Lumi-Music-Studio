@@ -60,9 +60,6 @@ python3 -c "import py_compile; py_compile.compile('tui.py', doraise=True)"
 3. **Device ID** — auto-generated 16-char hex `sDeviceId`, stored in config, injected into non-login WeAPI payloads.
 4. **Startup priority**: Cookie Jar → config `music_u` → Firefox auto-read → prompt.
 5. **Login methods**: QR scan (`Shift+Q` in TUI / `:login` in CLI), cookie paste (`:cookie <val>`).
-| `unblock.py` | Lifecycle manager for UnblockNeteaseMusic binary (find→Popen→port probe→set proxy) |
-| `visualizer.py` | Audio spectrum extracted from GStreamer tee branch, rendered as colored bars in terminal |
-| `downloader.py` | Multi-threaded MP3 downloader with ID3 tagging and LRC saving |
 
 ### GStreamer pipeline
 
