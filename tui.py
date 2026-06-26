@@ -1072,8 +1072,16 @@ def _do_qrcode_login(screen):
                 popup.refresh()
                 if redirect_url:
                     api.qrcode_follow_redirect(redirect_url)
+                # 短暂等待后再次轮询看是否能转为 803
             else:
-                _safe_addstr(popup, y + 2, 1, " 等待安全校验通过...      ", DM)
+                _safe_addstr(popup, y + 2, 1, " 安全校验不通过, 准备退出 ", RD)
+                popup.refresh()
+                import time as _t
+                _t.sleep(1.5)
+                screen.timeout(orig_timeout)
+                _popup_message(screen, "扫码登录失败: 安全校验限制", RD, 2.0)
+                _popup_message(screen, "请用浏览器登录后重启, 或输入 :cookie ", YW, 2.5)
+                return
         elif code == 801:
             _safe_addstr(popup, y + 1, 1, " 等待扫码... (Q=退出)        ", DM)
         else:

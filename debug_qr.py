@@ -99,8 +99,12 @@ for i in range(30):
                 print("  ✗ 无跳转链接")
             print(f"    原始响应: {json.dumps(r, ensure_ascii=False)[:300]}")
         else:
-            # 已处理过跳转, 简短输出
-            print("  (等待安全校验通过...)")
+            # 已处理过跳转但校验仍不通过, 退出
+            print("\n  ✗ 安全校验无法通过, 扫码登录不可用")
+            print("  💡 请用以下方式登录:")
+            print("     1. 在 Firefox 登录网易云后重新运行")
+            print("     2. 使用 :cookie <MUSIC_U值> 手动粘贴")
+            break
     elif code == -1:
         print(f"  ✗ 错误: {r.get('error', '未知')}")
     else:
