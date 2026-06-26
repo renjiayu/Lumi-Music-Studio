@@ -50,7 +50,7 @@ def start() -> bool:
 
         binary = _find_binary()
         if not binary:
-            print("  ⚠ UnblockNeteaseMusic 未安装 (npm i -g @unblockneteasemusic/server)")
+            print("  ⚠ UnblockNeteaseMusic 未安装 (npm i -g @unblockneteasemusic/server)", file=sys.stderr)
             return False
 
         try:
@@ -78,7 +78,7 @@ def start() -> bool:
             _started = True
             return True
         except Exception as e:
-            print(f"  ✗ UnblockNeteaseMusic 启动失败: {e}")
+            print(f"  ✗ UnblockNeteaseMusic 启动失败: {e}", file=sys.stderr)
             return False
 
 

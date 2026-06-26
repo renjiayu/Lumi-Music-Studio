@@ -65,6 +65,7 @@ def save(cfg: dict):
     with _cache_lock:
         _cache = {**DEFAULTS, **cfg}
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        tmp_path = None
         try:
             fd, tmp_path = tempfile.mkstemp(
                 dir=str(CONFIG_DIR), suffix=".tmp"
@@ -76,10 +77,11 @@ def save(cfg: dict):
             os.replace(tmp_path, CONFIG_FILE)
         except Exception:
             # 清理临时文件, 保留旧配置
-            try:
-                os.unlink(tmp_path)
-            except Exception:
-                pass
+            if tmp_path is not None:
+                try:
+                    os.unlink(tmp_path)
+                except Exception:
+                    pass
             raise
 
 

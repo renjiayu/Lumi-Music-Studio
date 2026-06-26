@@ -35,6 +35,7 @@ _now_playing = {"title": "", "artist": "", "album": ""}
 _last_input = ""
 _lyrics_lines = []        # [(time_ms, text), ...] — protected by _lyrics_lock
 _lyrics_lock = threading.Lock()
+_lyrics_thread_lock = threading.Lock()
 _lyrics_scroll = 0
 _lyrics_song_id = 0
 _lyrics_snapshot = []  # for key handler access
@@ -647,7 +648,7 @@ def _load_playlist(playlist_id, name=""):
 _lyrics_gen = 0
 
 def _fetch_lyrics(song_id):
-    global _lyrics_lines, _lyrics_scroll, _lyrics_gen, _lyrics_song_id, _lyrics_thread
+    global _lyrics_lines, _lyrics_scroll, _lyrics_gen, _lyrics_song_id, _lyrics_thread, _lyrics_thread_lock
     try:
         _lyrics_gen += 1
         my_gen = _lyrics_gen
@@ -671,14 +672,15 @@ def _fetch_lyrics(song_id):
 
 
 def _on_track_change(song_id, title, artist, album):
-    global _now_playing, _lyrics_thread
+    global _now_playing, _lyrics_thread, _lyrics_thread_lock
     _now_playing = {"title": title, "artist": artist, "album": album}
     with _lyrics_lock:
         _lyrics_lines.clear()
-    if _lyrics_thread is not None and _lyrics_thread.is_alive():
-        return  # 上一次歌词请求仍在进行中, 跳过
-    _lyrics_thread = threading.Thread(target=_fetch_lyrics, args=(song_id,), daemon=True)
-    _lyrics_thread.start()
+    with _lyrics_thread_lock:
+        if _lyrics_thread is not None and _lyrics_thread.is_alive():
+            return  # 上一次歌词请求仍在进行中, 跳过
+        _lyrics_thread = threading.Thread(target=_fetch_lyrics, args=(song_id,), daemon=True)
+        _lyrics_thread.start()
 
 def _refresh_display():
     global _display_indices, _cursor, _scroll_offset
@@ -814,11 +816,12 @@ def main(stdscr):
                     with _lyrics_lock:
                         _lyrics_lines.clear()
                     _lyrics_scroll = 0
-                    if _lyrics_thread is not None and _lyrics_thread.is_alive():
-                        _lyrics_thread = None  # 等旧线程自行退出
-                    _lyrics_thread = threading.Thread(
-                        target=_fetch_lyrics, args=(ns["id"],), daemon=True)
-                    _lyrics_thread.start()
+                    with _lyrics_thread_lock:
+                        if _lyrics_thread is not None and _lyrics_thread.is_alive():
+                            _lyrics_thread = None  # 等旧线程自行退出
+                        _lyrics_thread = threading.Thread(
+                            target=_fetch_lyrics, args=(ns["id"],), daemon=True)
+                        _lyrics_thread.start()
 
         # --- 搜索 ---
         elif key == ord("s"):
@@ -855,7 +858,12 @@ def main(stdscr):
                 elif k == ord("\n"):
                     pid = lists[sel]["id"]; pname = lists[sel]["name"]
                     _popup_message(stdscr, f"加载中: {pname}...", GR, 0.5)
-                    if _load_playlist(pid, pname):
+                    try:
+                        ok = _load_playlist(pid, pname)
+                    except Exception as e:
+                        _popup_message(stdscr, f"加载失败: {e}", RD, 1.5)
+                        break
+                    if ok:
                         _popup_message(stdscr, f"{pname}: {len(_songs)} 首", GR, 1.0)
                     break
 

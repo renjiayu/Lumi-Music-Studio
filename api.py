@@ -6,6 +6,7 @@
 import json
 import os
 import shutil
+import threading
 from pathlib import Path
 from typing import Optional
 import requests
@@ -37,6 +38,7 @@ def c(s, code):
 
 
 _session = None
+_session_lock = threading.Lock()
 
 
 def _detect_proxy() -> dict:
@@ -77,14 +79,15 @@ def _detect_proxy() -> dict:
 def get_session() -> requests.Session:
     """获取或创建全局 session"""
     global _session
-    if _session is None:
-        _session = requests.Session()
-        _session.headers.update(HEADERS)
-    proxy = _detect_proxy()
-    if proxy:
-        _session.proxies.update(proxy)
-    else:
-        _session.proxies.clear()
+    with _session_lock:
+        if _session is None:
+            _session = requests.Session()
+            _session.headers.update(HEADERS)
+        proxy = _detect_proxy()
+        if proxy:
+            _session.proxies.update(proxy)
+        else:
+            _session.proxies.clear()
     return _session
 
 
@@ -316,14 +319,15 @@ def _post_weapi(uri: str, data: dict = None, csrf_token: str = "") -> dict:
     """
     import weapi
     s = get_session()
-    payload = data or {}
+    payload = dict(data) if data else {}
     payload["csrf_token"] = csrf_token
     # 只在非 login 端点注入设备 ID
     if "login" not in uri.lower():
         try:
             payload["sDeviceId"] = get_device_id()
-        except Exception:
-            pass
+        except Exception as e:
+            import sys
+            print(f"  ⚠ 获取设备ID失败: {e}", file=sys.stderr)
     params, enc_sec_key = weapi.encrypt(payload)
     r = s.post(
         f"{BASE_URL}{uri}?csrf_token={csrf_token}",

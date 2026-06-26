@@ -191,11 +191,13 @@ def lrc_index_at_time(lines, pos_ms: int) -> int:
 def _normalize_play_ctx(songs, song_idx, playable):
     """将歌曲列表索引转为播放上下文 (order 内索引)"""
     order = _build_order(songs, playable)
-    order_idx = 0
+    order_idx = -1
     for oi, si in enumerate(order):
         if si == song_idx:
             order_idx = oi
             break
+    if order_idx == -1:
+        order_idx = 0  # fallback: song not in order, default to first
     return {"songs": songs, "index": order_idx, "playable": playable, "order": order}
 
 
@@ -735,8 +737,8 @@ def play_song(song_id, title="", ctx=None, song_obj=None):
     # 每次切歌保存状态用于恢复
     try:
         state.save()
-    except Exception:
-        pass
+    except Exception as e:
+        _tui_print(c(f"  ⚠ 保存播放状态失败: {e}", "yellow"))
     return True
 
 
@@ -1071,7 +1073,6 @@ def do_playlist():
             print(c(f"\n  📋 {pname} 加载中...", "dim"))
             result = api.playlist_detail_all(pid)
             _run_song_list(result["tracks"], result["name"])
-            _run_song_list(tracks, pname)
         except (ValueError, IndexError):
             print(c("  无效序号", "red"))
 
@@ -1210,14 +1211,14 @@ def main():
 
     _init_auth()
 
+    # 启动 UnblockNeteaseMusic (必须在 restore 之前, 否则恢复地理锁歌曲会失败)
+    if unblock.start():
+        print(c(f"  ✓ UnblockNeteaseMusic (127.0.0.1:{_cfg.get('unblock_port', 5200)})", "dim"))
+
     # 尝试恢复上次播放
     restored = state.try_restore()
     if restored:
         print(c("  ✓ 已恢复上次播放", "dim"))
-
-    # 启动 UnblockNeteaseMusic
-    if unblock.start():
-        print(c(f"  ✓ UnblockNeteaseMusic (127.0.0.1:{_cfg.get('unblock_port', 5200)})", "dim"))
 
     if mpris and _audio_backend == "gst":
         if mpris.start(sys.modules[__name__]):

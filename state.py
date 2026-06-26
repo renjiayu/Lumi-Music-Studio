@@ -84,8 +84,11 @@ def try_restore() -> bool:
     if not songs:
         return False
 
-    # 重建上下文
-    playable = api.check_playable(song_ids)
+    # 重建上下文 — 未登录时跳过可播检查 (VIP歌曲在未登录下检测不准)
+    if api.get_login_uid():
+        playable = api.check_playable(song_ids)
+    else:
+        playable = set(song_ids)  # 未登录时假设全部可播
     order = state.get("order", list(range(len(songs))))
     idx = state.get("index", 0)
     ctx = {"songs": songs, "index": idx, "playable": playable, "order": order}

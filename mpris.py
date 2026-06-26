@@ -6,6 +6,7 @@ _thread = None
 _bus = None
 _player = None
 _cli = None  # set by start()
+_loop = None  # GLib.MainLoop reference for stop()
 
 
 def _available() -> bool:
@@ -157,8 +158,9 @@ def start(cli_module):
 
             _player = Player()
             _active = True
-            loop = GLib.MainLoop()
-            loop.run()
+            global _loop
+            _loop = GLib.MainLoop()
+            _loop.run()
         except Exception:
             _active = False
 
@@ -168,8 +170,14 @@ def start(cli_module):
 
 
 def stop():
-    global _active
+    global _active, _loop
     _active = False
+    if _loop is not None:
+        try:
+            _loop.quit()
+        except Exception:
+            pass
+        _loop = None
 
 
 def emit_properties_changed():

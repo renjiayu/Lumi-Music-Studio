@@ -162,8 +162,11 @@ def _download_st(url: str, filepath: Path, total_size: int,
         return True
     except Exception as e:
         print(f"\r  [{idx}/{total}] {c('✗','red')} {title[:30]} — {e}")
-        if filepath.exists():
-            filepath.unlink()
+        try:
+            if filepath.exists():
+                filepath.unlink()
+        except OSError:
+            pass
         return False
 
 
@@ -234,8 +237,11 @@ def _download_mt(url: str, filepath: Path, total_size: int, threads: int,
 
     except Exception as e:
         print(f"\r  [{idx}/{total}] {c('✗','red')} {title[:30]} — {e}")
-        if filepath.exists():
-            filepath.unlink()
+        try:
+            if filepath.exists():
+                filepath.unlink()
+        except OSError:
+            pass
         return False
 
 
@@ -250,7 +256,6 @@ def download_playlist(playlist_id: int, page_size: int = 100):
         print(c("✗ 歌单为空", "red"))
         return
 
-    name = str(playlist_id)
     out_dir = OUTPUT_DIR / name
     print(c(f"\n💿 {name} — {len(tracks)} 首", "bold"))
     print(c(f"📁 保存到: {out_dir}", "dim"))
