@@ -467,7 +467,7 @@ def qrcode_unikey() -> Optional[str]:
     r = _post_weapi("/weapi/login/qrcode/unikey", {
         "key": str(uuid.uuid4()),
         "type": 1,
-    })
+    }, csrf_token=get_csrf_token())
     if r.get("code") != 200:
         return None
     return r.get("unikey")
@@ -482,7 +482,7 @@ def qrcode_login_check(key: str) -> dict:
     return _post_weapi("/weapi/login/qrcode/client/login", {
         "key": key,
         "type": 1,
-    })
+    }, csrf_token=get_csrf_token())
 
 
 def login_by_qrcode() -> Optional[str]:
