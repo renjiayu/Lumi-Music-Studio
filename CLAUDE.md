@@ -48,7 +48,18 @@ python3 -c "import py_compile; py_compile.compile('tui.py', doraise=True)"
 | `tui.py` | Curses TUI: split-panel layout (left=tracks, right=now playing+spectrum+lyrics+crab mascot), Tokyo Night color scheme, popup modals (search, charts, playlists, QR login, lyrics) |
 | `mpris.py` | Linux desktop media integration (optional, dbus-python required) |
 | `state.py` | Playback resume: saves ctx metadata to `~/.cache/lumi-music/state.json` on track change, restores on launch via `api.song_detail` + `play_song` |
-| `config.py` | Atomic JSON config at `~/.config/lumi-music/config.json` (tempfile+rename pattern, 0600 perms). Keys: `music_u`, `download_dir`, `auto_next`, `unblock`, `unblock_port` |
+| `config.py` | Atomic JSON config at `~/.config/lumi-music/config.json` (tempfile+rename pattern, 0600 perms). Keys: `music_u`, `device_id`, `download_dir`, `auto_next`, `unblock`, `unblock_port` |
+| `unblock.py` | Lifecycle manager for UnblockNeteaseMusic binary (find→Popen→port probe→set proxy) |
+| `visualizer.py` | Audio spectrum extracted from GStreamer tee branch, rendered as colored bars in terminal |
+| `downloader.py` | Multi-threaded MP3 downloader with ID3 tagging and LRC saving |
+
+### Auth flow
+
+1. **Cookie Jar** (`~/.config/lumi-music/cookies.json`) — stores all `163.com` cookies (MUSIC_U, __csrf, MUSIC_A, etc.), not just MUSIC_U. Imitates musicfox's persistent-cookiejar.
+2. **Token refresh** — `refresh_token()` calls `/weapi/login/token/refresh` on startup when jar exists.
+3. **Device ID** — auto-generated 16-char hex `sDeviceId`, stored in config, injected into non-login WeAPI payloads.
+4. **Startup priority**: Cookie Jar → config `music_u` → Firefox auto-read → prompt.
+5. **Login methods**: QR scan (`Shift+Q` in TUI / `:login` in CLI), cookie paste (`:cookie <val>`).
 | `unblock.py` | Lifecycle manager for UnblockNeteaseMusic binary (find→Popen→port probe→set proxy) |
 | `visualizer.py` | Audio spectrum extracted from GStreamer tee branch, rendered as colored bars in terminal |
 | `downloader.py` | Multi-threaded MP3 downloader with ID3 tagging and LRC saving |
@@ -71,7 +82,7 @@ souphttpsrc ─→ decodebin ─→ audioconvert ─→ audioresample ─→ tee
 
 ### Login
 
-Two methods: `:cookie` command (paste MUSIC_U value), or `:login` / Shift+L (QR code via WeAPI `qrcode_unikey` → poll `qrcode_login_check`). Cookie stored in `config.json` `music_u` key.
+QR scan (`Shift+Q` in TUI / `:login` in CLI) or cookie paste (`:cookie <val>`). See **Auth flow** above.
 
 ### Audio backends
 
@@ -83,5 +94,5 @@ Priority: GStreamer (souphttpsrc streaming) → pygame (download-then-play fallb
 ENTER play    SPC pause    n next    b prev    +/- seek
 r shuffle     c loop       s search  p chart   y daily
 m mine        v viz        f filter  d dl      l lyric
-L QR login    q quit
+Q/Shift+Q     QR login     q quit
 ```
