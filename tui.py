@@ -545,6 +545,7 @@ def _draw_help_bar(win):
         ("f", "筛选", FG),
         ("d", "下载", FG),
         ("l", "歌词", FG),
+        ("L", "扫码登录", YW),
         ("q", "退出", RD),
     ]
     x = 0
@@ -707,24 +708,35 @@ def main(stdscr):
     stdscr.clear()
 
     import config
+    logged_in = False
     # 优先从 Cookie Jar 恢复完整会话
-    if not api.load_cookie_jar():
+    if api.load_cookie_jar():
+        logged_in = True
+    else:
         # 回退: config music_u → 浏览器
         music_u = config.load().get("music_u", "")
         if music_u:
-            api.set_cookie(f"MUSIC_U={music_u}")
+            ok, _ = api.set_cookie(f"MUSIC_U={music_u}")
+            if ok:
+                api.save_cookie_jar()
+                logged_in = True
+        if not logged_in and api.auto_load_browser_cookie():
             api.save_cookie_jar()
-        else:
-            api.auto_load_browser_cookie()
+            logged_in = True
     # 尝试刷新 token
-    try:
-        api.refresh_token()
-    except Exception:
-        pass
+    if logged_in:
+        try:
+            api.refresh_token()
+        except Exception:
+            pass
     unblock.start()
     if not state.try_restore():
         _load_playlist(3778678, "热歌榜")
     _vz._active = True
+
+    # 首次启动未登录时主动提示
+    if not logged_in:
+        _popup_message(stdscr, "未登录, 按 Shift+L 扫码登录", YW, 2.0)
 
     while True:
         h, w = stdscr.getmaxyx()
