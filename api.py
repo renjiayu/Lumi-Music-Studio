@@ -478,11 +478,25 @@ def qrcode_login_check(key: str) -> dict:
 
     返回: {"code": int, "message": str}
     code: 800=过期/错误, 801=等待扫码, 802=已扫码待确认, 803=登录成功
+         8821=安全校验, 需跟随 redirectUrl 获取额外 cookie
     """
     return _post_weapi("/weapi/login/qrcode/client/login", {
         "key": key,
         "type": 1,
     }, csrf_token=get_csrf_token())
+
+
+def qrcode_follow_redirect(redirect_url: str) -> bool:
+    """跟随 8821 安全校验跳转, 获取额外 cookie 后返回 True"""
+    if not redirect_url:
+        return False
+    try:
+        s = get_session()
+        r = s.get(redirect_url, headers=HEADERS, timeout=15, allow_redirects=True)
+        r.raise_for_status()
+        return True
+    except Exception:
+        return False
 
 
 def login_by_qrcode() -> Optional[str]:

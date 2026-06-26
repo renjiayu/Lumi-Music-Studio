@@ -2,7 +2,8 @@
 """
 调试: 测试网易云扫码登录全流程, 打印原始 API 响应
 """
-import sys, json, uuid
+import sys
+import json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -50,7 +51,7 @@ for i in range(30):
         print(f"  nickname={nick}", end="")
     if code == 803:
         cookie = r.get("cookie", "")
-        print(f"\n\n  ✓ 登录成功!")
+        print("\n\n  ✓ 登录成功!")
         if cookie:
             print(f"  cookie: {cookie[:80]}...")
         # 从 cookie 提取 MUSIC_U
@@ -72,7 +73,7 @@ for i in range(30):
             api.save_cookie_jar()
             print("  ✓ Cookie 已保存")
         else:
-            print(f"  ✗ 未找到 MUSIC_U")
+            print("  ✗ 未找到 MUSIC_U")
             print(f"  session cookies: {dict((c.name, c.value[:10]) for c in api.get_session().cookies)}")
         break
     elif code == 800:
@@ -80,6 +81,14 @@ for i in range(30):
         break
     elif code == 801:
         print("  (等待扫码...)")
+    elif code == 8821:
+        redirect_url = r.get("redirectUrl", "")
+        print("  安全校验中, 跟随跳转...", end="")
+        if redirect_url:
+            api.qrcode_follow_redirect(redirect_url)
+            print("  ✓")
+        else:
+            print("  ✗ 无跳转链接")
     elif code == -1:
         print(f"  ✗ 错误: {r.get('error', '未知')}")
     else:
