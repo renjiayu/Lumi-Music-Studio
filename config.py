@@ -22,6 +22,7 @@ DEFAULTS = {
     "mpris": True,
     "unblock": True,         # 自动拉起 UnblockNeteaseMusic
     "unblock_port": 5200,    # 监听端口
+    "device_id": "",         # WeAPI 设备 ID (首次运行时自动生成)
 }
 
 _cache = None

@@ -100,10 +100,80 @@ def set_cookie(cookie_str: str):
     try:
         r = s.get(f"{BASE_URL}/api/nuser/account/get")
         if r.json().get("code") == 200:
+            save_cookie_jar()
             return True, "登录成功"
         return False, r.json().get("message", "未知错误")
     except Exception as e:
         return False, str(e)
+
+
+# ========== Cookie Jar 持久化 (模仿 musicfox persistent-cookiejar) ==========
+
+def _cookie_jar_path() -> Path:
+    """Cookie jar 文件路径"""
+    from pathlib import Path as _Path
+    _ROOT = os.environ.get("LUMI_MUSIC_ROOT")
+    if _ROOT:
+        return _Path(_ROOT) / "cookies.json"
+    return _Path.home() / ".config" / "lumi-music" / "cookies.json"
+
+
+def save_cookie_jar():
+    """保存完整 Cookie Jar 到文件 (含 MUSIC_U, __csrf, MUSIC_A 等)"""
+    import json as _json
+    s = get_session()
+    cookies = {}
+    for c in s.cookies:
+        if c.domain and ("163.com" in c.domain or "music.163" in c.domain):
+            cookies[c.name] = {
+                "value": c.value,
+                "domain": c.domain,
+                "path": c.path,
+                "expires": c.expires,
+                "secure": c.secure,
+            }
+    try:
+        _cookie_jar_path().parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = _cookie_jar_path().with_suffix(".tmp")
+        with open(tmp_path, "w") as f:
+            _json.dump(cookies, f, ensure_ascii=False, indent=2)
+        os.chmod(tmp_path, 0o600)
+        os.replace(tmp_path, _cookie_jar_path())
+    except Exception:
+        pass
+
+
+def load_cookie_jar() -> bool:
+    """从文件恢复完整 Cookie Jar, 返回是否成功"""
+    import json as _json
+    path = _cookie_jar_path()
+    if not path.exists():
+        return False
+    try:
+        with open(path) as f:
+            cookies = _json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return False
+    s = get_session()
+    loaded = False
+    for name, cdata in cookies.items():
+        if isinstance(cdata, str):
+            # 旧格式兼容
+            s.cookies.set(name, cdata)
+            loaded = True
+        elif isinstance(cdata, dict) and cdata.get("value"):
+            from requests.cookies import create_cookie
+            ck = create_cookie(
+                name=name, value=cdata["value"],
+                domain=cdata.get("domain", "music.163.com"),
+                path=cdata.get("path", "/"),
+                expires=cdata.get("expires"),
+                secure=bool(cdata.get("secure")),
+                rest={"HttpOnly": True},
+            )
+            s.cookies.set_cookie(ck)
+            loaded = True
+    return loaded
 
 
 def auto_load_firefox_cookie() -> bool:
@@ -167,6 +237,44 @@ def auto_load_browser_cookie() -> bool:
     return auto_load_firefox_cookie()
 
 
+# ========== Session 刷新 ==========
+
+def refresh_token() -> bool:
+    """刷票 session token 延长有效期 (模仿 musicfox LoginRefresh)"""
+    csrf_token = get_csrf_token()
+    r = _post_weapi("/weapi/login/token/refresh", {}, csrf_token)
+    if r.get("code") == 200:
+        save_cookie_jar()
+        return True
+    return False
+
+
+def get_csrf_token() -> str:
+    """从 session cookie 中提取 __csrf"""
+    s = get_session()
+    for c in s.cookies:
+        if c.name == "__csrf":
+            return c.value
+    return ""
+
+
+# ========== 设备 ID ==========
+
+def get_device_id() -> str:
+    """获取或生成设备 ID (模仿 musicfox GenerateSDeviceId)"""
+    import config as _cfg
+    device_id = _cfg.get("device_id")
+    if device_id:
+        return device_id
+    # 生成新设备 ID: 随机 16 位 hex
+    import random as _random
+    import string as _string
+    chars = _string.hexdigits.lower()
+    device_id = "".join(_random.choices(chars, k=16))
+    _cfg.set_key("device_id", device_id)
+    return device_id
+
+
 def account_profile() -> dict:
     """获取当前登录账号信息"""
     return _get("/api/nuser/account/get")
@@ -201,11 +309,17 @@ def _get(uri: str, params: dict = None) -> dict:
 
 
 def _post_weapi(uri: str, data: dict = None, csrf_token: str = "") -> dict:
-    """POST 请求，使用 WeAPI (AES+RSA) 加密"""
+    """POST 请求，使用 WeAPI (AES+RSA) 加密，自动注入设备 ID"""
     import weapi
     s = get_session()
     payload = data or {}
     payload["csrf_token"] = csrf_token
+    # 注入设备 ID (login/token/refresh 等端点不需要)
+    if "/login/" not in uri or "/token/refresh" in uri:
+        try:
+            payload["sDeviceId"] = get_device_id()
+        except Exception:
+            pass
     params, enc_sec_key = weapi.encrypt(payload)
     r = s.post(
         f"{BASE_URL}{uri}?csrf_token={csrf_token}",

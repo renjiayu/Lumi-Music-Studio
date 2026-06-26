@@ -1089,13 +1089,14 @@ def do_cookie():
         ok, msg = api.set_cookie(f"MUSIC_U={val}")
         if ok:
             config.set_key("music_u", val)
-            print(c(f"  ✓ {msg} (已保存到配置)", "green"))
+            api.save_cookie_jar()
+            print(c(f"  ✓ {msg} (已保存 Cookie Jar 和配置)", "green"))
         else:
             print(c(f"  ✗ {msg}", "red"))
 
 
 def do_qrcode_login():
-    """扫码登录: 生成二维码 → 等待扫码 → 完成"""
+    """扫码登录: 生成二维码 → 等待扫码 → 完成 → 保存 Cookie Jar"""
     key = api.qrcode_unikey()
     if not key:
         print(c("  ✗ 获取二维码失败", "red"))
@@ -1135,7 +1136,8 @@ def do_qrcode_login():
         if code == 803:
             # 登录成功, code 为 803 时可能直接返回 Cookie
             print(c("  ✓ 扫码登录成功!", "green"))
-            # 尝试从当前 session 提取 MUSIC_U
+            # 保存 Cookie Jar + config
+            api.save_cookie_jar()
             music_u = None
             for cookie in api.get_session().cookies:
                 if cookie.name == "MUSIC_U" and cookie.value:
@@ -1161,14 +1163,29 @@ def do_qrcode_login():
 
 
 def _init_auth():
-    """加载登录态: 配置 → 浏览器"""
+    """加载登录态: Cookie Jar → config music_u → 浏览器 → token 刷新"""
+    # 1. 优先从 Cookie Jar 恢复 (含 __csrf, MUSIC_A 等完整会话)
+    if api.load_cookie_jar():
+        # 刷新 token 延长有效期
+        try:
+            if api.refresh_token():
+                print(c("  ✓ Cookie Jar 已恢复并刷新", "green"))
+            else:
+                print(c("  ✓ Cookie Jar 已恢复", "green"))
+        except Exception:
+            print(c("  ✓ Cookie Jar 已恢复", "green"))
+        return True
+    # 2. 回退: 从配置的 music_u 加载
     music_u = _cfg.get("music_u", "")
     if music_u:
         ok, msg = api.set_cookie(f"MUSIC_U={music_u}")
         if ok:
+            api.save_cookie_jar()
             print(c("  ✓ 已从配置文件加载登录态", "green"))
             return True
+    # 3. 最后尝试: 浏览器自动读取
     if api.auto_load_browser_cookie():
+        api.save_cookie_jar()
         print(c("  ✓ 已自动加载浏览器登录态", "green"))
         return True
     print(c("  ⓘ 未检测到登录态, VIP歌曲可能无法播放", "dim"))
@@ -1285,6 +1302,7 @@ def main():
                 ok, msg = api.set_cookie(f"MUSIC_U={val}")
                 if ok:
                     config.set_key("music_u", val)
+                    api.save_cookie_jar()
                 print(c(f"  {'✓' if ok else '✗'} {msg}", "green" if ok else "red"))
             else:
                 do_cookie()

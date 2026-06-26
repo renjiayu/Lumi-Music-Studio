@@ -707,11 +707,20 @@ def main(stdscr):
     stdscr.clear()
 
     import config
-    music_u = config.load().get("music_u", "")
-    if music_u:
-        api.set_cookie(f"MUSIC_U={music_u}")
-    else:
-        api.auto_load_browser_cookie()
+    # 优先从 Cookie Jar 恢复完整会话
+    if not api.load_cookie_jar():
+        # 回退: config music_u → 浏览器
+        music_u = config.load().get("music_u", "")
+        if music_u:
+            api.set_cookie(f"MUSIC_U={music_u}")
+            api.save_cookie_jar()
+        else:
+            api.auto_load_browser_cookie()
+    # 尝试刷新 token
+    try:
+        api.refresh_token()
+    except Exception:
+        pass
     unblock.start()
     if not state.try_restore():
         _load_playlist(3778678, "热歌榜")
@@ -973,6 +982,7 @@ def _do_qrcode_login(screen):
         if code == 803:
             screen.timeout(orig_timeout)
             _popup_message(screen, "登录成功!", GR, 1.0)
+            api.save_cookie_jar()
             music_u = None
             for cookie in api.get_session().cookies:
                 if cookie.name == "MUSIC_U" and cookie.value:
