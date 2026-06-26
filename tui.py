@@ -522,14 +522,15 @@ def _draw_right_panel(win, content_h, content_y, split_x):
 
 
 def _draw_help_bar(win):
-    """底部命令栏 (最后一行)"""
+    """底部命令栏 (最后一行或两行)"""
     h, w = win.getmaxyx()
     help_y = h - 1
 
     # 分隔线
     _hline(win, help_y - 1, 0, w, DM)
 
-    keys = [
+    # 分组: 播放控制 + 列表/功能
+    keys_group1 = [
         ("ENTER", "播放", GR),
         ("SPC", "暂停", YW),
         ("n", "下一首", FG),
@@ -537,10 +538,12 @@ def _draw_help_bar(win):
         ("+/-", "快进/退", FG),
         ("r", "随机", FG),
         ("c", "循环", FG),
+    ]
+    keys_group2 = [
         ("s", "搜索", CY),
         ("p", "榜单", CY),
-        ("y", "每日", CY),
-        ("m", "我的", CY),
+        ("y", "每日推荐", CY),
+        ("m", "我的歌单", CY),
         ("v", "频谱", MG),
         ("f", "筛选", FG),
         ("d", "下载", FG),
@@ -548,11 +551,34 @@ def _draw_help_bar(win):
         ("Q", "扫码登录", YW),
         ("q", "退出", RD),
     ]
-    x = 0
-    for key, label, color in keys:
-        seg = f" [{key}]{label}"
-        _safe_addstr(win, help_y, x, seg, color)
-        x += len(seg)
+
+    # 计算两组视觉宽度, 决定单行还是双行
+    def _seg_width(items):
+        return sum(
+            2 if ord(c) > 0x2E80 else 1
+            for k, label, _ in items
+            for c in f" [{k}]{label}"
+        )
+
+    if _seg_width(keys_group1) + _seg_width(keys_group2) + 4 < w:
+        # 单行显示全部
+        x = 0
+        for key, label, color in keys_group1 + keys_group2:
+            seg = f" [{key}]{label}"
+            _safe_addstr(win, help_y, x, seg, color)
+            x += len(seg)
+    else:
+        # 双行显示
+        x = 0
+        for key, label, color in keys_group1:
+            seg = f" [{key}]{label}"
+            _safe_addstr(win, help_y - 1, x, seg, color)
+            x += len(seg)
+        x = 0
+        for key, label, color in keys_group2:
+            seg = f" [{key}]{label}"
+            _safe_addstr(win, help_y, x, seg, color)
+            x += len(seg)
     win.noutrefresh()
 
 # ========== 弹窗 ==========
@@ -762,11 +788,11 @@ def main(stdscr):
         # === 布局计算 ===
         # Row 0: 状态栏 (1 行)
         # Row 1: 分区标题行 (1 行，含 ─── TRACKS ─── 和 ─── NOW PLAYING ───)
-        # Row 2 .. h-3: 内容区
-        # Row h-2: 命令分隔线
-        # Row h-1: 命令栏
+        # Row 2 .. h-4: 内容区
+        # Row h-3: 命令分隔线
+        # Row h-2 .. h-1: 命令栏 (双行)
         content_y = 2
-        content_h = max(h - 2 - content_y, 1)  # 内容填到 h-3, 分隔线在 h-2, 命令在 h-1
+        content_h = max(h - 3 - content_y, 1)  # 内容区, 留两行给帮助栏
         left_w = max(w * 3 // 5, 35)  # 左侧 60%, 最少 35 列
         split_x = left_w  # 竖线位置
 
