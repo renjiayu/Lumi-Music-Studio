@@ -5,8 +5,11 @@
 """
 import json
 import os
+import random
 import shutil
+import string
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -469,11 +472,30 @@ def user_playlist(uid: int, limit: int = 30, offset: int = 0) -> dict:
 
 # ========== 扫码登录 ==========
 
+def _apply_request_strategy():
+    """模仿 musicfox ApplyRequestStrategy: 注入反爬 cookie"""
+    s = get_session()
+    rand_id = "".join(random.choices(string.ascii_letters + string.digits, k=16))
+    for domain in [".163.com", "music.163.com"]:
+        s.cookies.set("os", "pc", domain=domain, path="/")
+        s.cookies.set("NMTID", f"00O{rand_id}", domain=domain, path="/")
+        s.cookies.set("appver", "v5.0.0", domain=domain, path="/")
+
+
+def _generate_chain_id() -> str:
+    """模仿 musicfox GenerateChainID: deviceId + platform + timestamp"""
+    device_id = get_device_id()
+    ts = int(time.time() * 1000)
+    return f"v1_{device_id}_web_login_{ts}"
+
+
 def qrcode_unikey() -> Optional[str]:
     """获取二维码登录的 unikey，返回 key 或 None"""
+    _apply_request_strategy()
     r = _post_weapi("/weapi/login/qrcode/unikey", {
         "key": str(uuid.uuid4()),
         "type": 1,
+        "noCheckToken": True,
     }, csrf_token=get_csrf_token())
     if r.get("code") != 200:
         return None
@@ -487,9 +509,11 @@ def qrcode_login_check(key: str) -> dict:
     code: 800=过期/错误, 801=等待扫码, 802=已扫码待确认, 803=登录成功
          8821=安全校验, 需跟随 redirectUrl 获取额外 cookie
     """
+    _apply_request_strategy()
     return _post_weapi("/weapi/login/qrcode/client/login", {
         "key": key,
         "type": 1,
+        "noCheckToken": True,
     }, csrf_token=get_csrf_token())
 
 

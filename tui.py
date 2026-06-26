@@ -968,7 +968,8 @@ def _do_qrcode_login(screen):
     if not key:
         _popup_message(screen, "获取二维码失败", RD, 1.5)
         return
-    url = f"https://music.163.com/login?codekey={key}"
+    chain_id = api._generate_chain_id()
+    url = f"https://music.163.com/login?codekey={key}&chainId={chain_id}"
 
     h, w = screen.getmaxyx()
     # 渲染二维码到字符串

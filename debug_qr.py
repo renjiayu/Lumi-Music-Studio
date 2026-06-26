@@ -18,7 +18,8 @@ if not key:
 print(f"✓ unikey: {key}")
 
 # 2. 生成二维码 URL
-url = f"https://music.163.com/login?codekey={key}"
+chain_id = api._generate_chain_id()
+url = f"https://music.163.com/login?codekey={key}&chainId={chain_id}"
 print(f"\n  扫码 URL: {url}")
 
 # 3. 生成二维码 (终端显示)

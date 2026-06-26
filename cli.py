@@ -1100,7 +1100,8 @@ def do_qrcode_login():
     if not key:
         print(c("  ✗ 获取二维码失败", "red"))
         return
-    url = f"https://music.163.com/login?codekey={key}"
+    chain_id = api._generate_chain_id()
+    url = f"https://music.163.com/login?codekey={key}&chainId={chain_id}"
     try:
         import qrcode
         # 生成二维码
