@@ -146,23 +146,23 @@ def _init_colors():
     global SP_LO, SP_ML, SP_MD, SP_MH, SP_HI, SP_PK
     curses.start_color()
     curses.use_default_colors()
-    # === 赛博霓虹配色 ===
-    curses.init_pair(1, 51, -1)     # 亮青 — 可播/播放中
-    curses.init_pair(2, 196, -1)    # 霓虹红 — 不可播/错误
-    curses.init_pair(3, 226, -1)    # 亮黄 — 暂停/警告
-    curses.init_pair(4, 75, -1)     # 电蓝 — 标题/标号
-    curses.init_pair(5, 201, -1)    # 热粉紫 — 频谱/强调
-    curses.init_pair(6, 255, -1)    # 白 — 普通文字
-    curses.init_pair(7, 235, 51)    # 暗底青字 — 高亮选中
-    curses.init_pair(8, 244, -1)    # 灰 — 次要文字/注释
-    curses.init_pair(9, 235, 51)    # 反色 — 状态栏: 暗底青字
-    # 频谱渐变 (霓虹: 蓝 → 青 → 绿 → 黄 → 红 → 粉)
-    curses.init_pair(20, 27, -1)    # 蓝   — 低
-    curses.init_pair(21, 45, -1)    # 青   — 中低
-    curses.init_pair(22, 46, -1)    # 绿   — 中
-    curses.init_pair(23, 226, -1)   # 黄   — 中高
-    curses.init_pair(24, 196, -1)   # 红   — 高
-    curses.init_pair(25, 201, -1)   # 粉紫 — 峰
+    # === 灰白高级 + 冷色频谱 ===
+    curses.init_pair(1, 39, -1)     # 青蓝 — 可播/播放中
+    curses.init_pair(2, 167, -1)    # 柔红 — 不可播/错误
+    curses.init_pair(3, 179, -1)    # 暖金 — 暂停/警告
+    curses.init_pair(4, 110, -1)    # 灰蓝 — 标题/标号
+    curses.init_pair(5, 140, -1)    # 淡紫 — 强调
+    curses.init_pair(6, 255, -1)    # 纯白 — 普通文字
+    curses.init_pair(7, 235, 255)   # 暗底白字 — 高亮选中
+    curses.init_pair(8, 245, -1)    # 浅灰 — 次要文字/注释
+    curses.init_pair(9, 235, 255)   # 反色 — 状态栏: 暗底白字
+    # 频谱渐变 (冷色调: 深蓝 → 青 → 亮青 → 白)
+    curses.init_pair(20, 26, -1)    # 深蓝 — 低
+    curses.init_pair(21, 33, -1)    # 中蓝 — 中低
+    curses.init_pair(22, 45, -1)    # 亮青 — 中
+    curses.init_pair(23, 51, -1)    # 亮青白 — 中高
+    curses.init_pair(24, 81, -1)    # 天蓝 — 高
+    curses.init_pair(25, 117, -1)   # 淡蓝 — 峰
 
     HL = curses.color_pair(7) | curses.A_BOLD
     GR = curses.color_pair(1) | curses.A_BOLD
@@ -786,7 +786,7 @@ def _show_startup_banner(screen):
         if i < 6:
             attr = FG | curses.A_BOLD  # 纯白粗体
         elif "LUMI" in line:
-            attr = CY | curses.A_BOLD  # 品牌名亮青
+            attr = GR | curses.A_BOLD  # 品牌名青蓝
         else:
             attr = DM  # 副标题灰
         # 阴影效果
