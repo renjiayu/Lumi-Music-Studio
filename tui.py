@@ -43,6 +43,21 @@ _max_duration = 0  # 列表中歌曲的最大时长 (秒), 用于微型进度条
 _crab_tick = 0     # 螃蟹动画帧计数
 _lyrics_thread = None  # 当前歌词获取线程 (防止重复创建)
 
+# 加载动画帧 (braille spinner)
+_SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+# 启动横幅 ASCII art
+_STARTUP_BANNER = [
+    "  ██╗     ██╗   ██╗███╗   ███╗██╗",
+    "  ██║     ██║   ██║████╗ ████║██║",
+    "  ██║     ██║   ██║██╔████╔██║██║",
+    "  ██║     ██║   ██║██║╚██╔╝██║██║",
+    "  ███████╗╚██████╔╝██║ ╚═╝ ██║██║",
+    "  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝",
+    "",
+    "        ♪ 网易云音乐 TUI ♪",
+]
+
 # 螃蟹吉祥物 ASCII art — 各播放状态表情
 _CRAB = {
     "sleep": [
@@ -180,8 +195,8 @@ def _hline(win, y, x, width, attr=DM):
     _safe_addstr(win, y, x, "─" * width, attr)
 
 def _draw_section_header(win, y, x, title, width, attr=CY):
-    """分区标题: ─── TITLE ──────────────────────────"""
-    head = f"─── {title} "
+    """分区标题: ═══ TITLE ══════════════════════════"""
+    head = f"═══ {title} "
     _safe_addstr(win, y, x, head, attr | curses.A_BOLD)
     remaining = width - len(head)
     if remaining > 3:
@@ -324,8 +339,11 @@ def _draw_status_bar(win):
         _safe_addstr(win, 0, x, label, SB)
         x += len(label)
 
-    # 右: 歌曲计数
+    # 右: 时间 + 歌曲计数
+    now_str = __import__("time").strftime("%H:%M")
+    clock = f" {now_str} "
     count = f" {len(_songs)} 首 "
+    _safe_addstr(win, 0, w - len(count) - len(clock), clock, SB | curses.A_BOLD)
     _safe_addstr(win, 0, w - len(count), count, SB)
     win.noutrefresh()
 
@@ -454,10 +472,24 @@ def _draw_right_panel(win, content_h, content_y, split_x):
         pct = min(pos / dur, 1.0)
         bar_w = min(right_w - 2, 24)
         filled = int(pct * bar_w)
-        bar = "█" * filled + "░" * (bar_w - filled)
         _kv("进度", f"{format_time_ms(pos)}/{format_time_ms(dur)}", CY)
         if y < content_y + content_h:
-            _safe_addstr(win, y, val_x, bar[:right_w - label_w - 2], GR)
+            # 渐变进度条 (复用频谱渐变色)
+            max_bi = max(bar_w - 1, 1)
+            for bi in range(bar_w):
+                if bi < filled:
+                    ratio = bi / max_bi
+                    if ratio < 0.25:
+                        attr = SP_LO
+                    elif ratio < 0.50:
+                        attr = SP_ML
+                    elif ratio < 0.75:
+                        attr = SP_MD
+                    else:
+                        attr = SP_MH
+                    _safe_addstr(win, y, val_x + bi, "█", attr)
+                else:
+                    _safe_addstr(win, y, val_x + bi, "░", DM)
             y += 1
     _kv("状态", status, GR if cli._playing else DM)
 
@@ -739,6 +771,50 @@ def _toggle_filter():
     _show_all = not _show_all
     _refresh_display()
 
+# ========== 特效辅助 ==========
+
+_spinner_tick = 0
+
+def _spinner_char() -> str:
+    """返回当前 spinner 字符"""
+    global _spinner_tick
+    _spinner_tick += 1
+    return _SPINNER_FRAMES[_spinner_tick % len(_SPINNER_FRAMES)]
+
+
+def _show_startup_banner(screen):
+    """启动时显示 ASCII 艺术字横幅"""
+    h, w = screen.getmaxyx()
+    screen.erase()
+    lines = _STARTUP_BANNER
+    banner_h = len(lines)
+    banner_w = max(len(line) for line in lines)
+    start_y = (h - banner_h) // 2
+    start_x = max((w - banner_w) // 2, 0)
+
+    # 渐变色: 从上到下 CY → MG
+    colors = [CY, CY, MG, MG, CY, CY, DM, YW]
+    for i, line in enumerate(lines):
+        if i < len(colors):
+            attr = colors[i] | curses.A_BOLD
+        else:
+            attr = DM
+        _safe_addstr(screen, start_y + i, start_x, line, attr)
+
+    _safe_addstr(screen, start_y + banner_h + 1, start_x,
+                 f"  v{__import__('config').load().get('device_id', '?')[:8]}", DM)
+    screen.refresh()
+
+    import time
+    for _ in range(25):  # ~1.5s
+        time.sleep(0.06)
+        # 每帧刷新让 spinner 有动画感
+        k = screen.getch()
+        if k != -1:  # 用户按下任意键跳过横幅
+            break
+    screen.erase()
+
+
 # ========== 主循环 ==========
 
 def main(stdscr):
@@ -750,6 +826,7 @@ def main(stdscr):
     curses.curs_set(0)
     stdscr.timeout(60)
     stdscr.clear()
+    _show_startup_banner(stdscr)
 
     import config
     logged_in = False
@@ -869,7 +946,7 @@ def main(stdscr):
         elif key == ord("s"):
             kw = _modal_input(stdscr, "搜索")
             if kw:
-                _popup_message(stdscr, "搜索中...", GR, 0.5)
+                _popup_message(stdscr, f"{_SPINNER_FRAMES[0]} 搜索中", GR, 0.5)
                 if _load_search(kw):
                     _popup_message(stdscr, f"找到 {len(_songs)} 首", GR, 1.0)
                 else:
@@ -899,7 +976,7 @@ def main(stdscr):
                 elif k == curses.KEY_DOWN and sel < len(lists) - 1: sel += 1
                 elif k == ord("\n"):
                     pid = lists[sel]["id"]; pname = lists[sel]["name"]
-                    _popup_message(stdscr, f"加载中: {pname}...", GR, 0.5)
+                    _popup_message(stdscr, f"{_SPINNER_FRAMES[0]} 加载中 {pname}", GR, 0.5)
                     try:
                         ok = _load_playlist(pid, pname)
                     except Exception as e:
@@ -926,12 +1003,12 @@ def main(stdscr):
                 song_idx = _display_indices[_cursor]
                 ns = api.normalize_song(_songs[song_idx])
                 artists = api.format_artists(ns["artists"])
-                _popup_message(stdscr, f"下载: {ns['name']}...", GR, 1.0)
+                _popup_message(stdscr, f"{_SPINNER_FRAMES[0]} 下载 {ns['name']}", GR, 1.0)
                 from downloader import download_song as ds
                 threading.Thread(target=ds, args=(ns["id"], ns["name"], artists), daemon=True).start()
 
         elif key == ord("y"):
-            _popup_message(stdscr, "加载每日推荐...", GR, 0.5)
+            _popup_message(stdscr, f"{_SPINNER_FRAMES[0]} 加载每日推荐", GR, 0.5)
             r = api.daily_recommend()
             if r.get("code") == 200:
                 songs = r.get("data", {}).get("dailySongs") or r.get("recommend", [])
@@ -984,7 +1061,7 @@ def main(stdscr):
                         elif k == ord("\n"):
                             pid = pls[sel]["id"]
                             pname = pls[sel]["name"]
-                            _popup_message(stdscr, f"加载中: {pname}...", GR, 0.5)
+                            _popup_message(stdscr, f"{_SPINNER_FRAMES[0]} 加载中 {pname}", GR, 0.5)
                             _load_playlist(pid, pname)
                             break
 
