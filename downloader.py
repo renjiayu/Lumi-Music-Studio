@@ -6,8 +6,6 @@
 - 结构化目录: ~/Music/<歌手>/<歌名>.mp3
 """
 import sys
-import os
-import time
 import threading
 from pathlib import Path
 import requests as req
@@ -33,7 +31,7 @@ def _safe_filename(s: str) -> str:
 
 
 try:
-    from mutagen.id3 import ID3, TIT2, TPE1, TALB, APIC, TDRC
+    from mutagen.id3 import ID3, TIT2, TPE1, TALB, APIC
     from mutagen.mp3 import MP3
     TAG_OK = True
 except ImportError:
@@ -184,11 +182,6 @@ def _download_mt(url: str, filepath: Path, total_size: int, threads: int,
         end = start + chunk_size - 1 if i < threads - 1 else total_size - 1
         chunks.append({"start": start, "end": end, "data": None, "done": False, "fail": False})
 
-    # 全局进度
-    progress_lock = threading.Lock()
-    total_downloaded = [0]
-    last_pct = [-1]
-
     def _download_chunk(ci: int):
         """下载单个分块到内存"""
         try:
@@ -247,7 +240,7 @@ def _download_mt(url: str, filepath: Path, total_size: int, threads: int,
 
 def download_playlist(playlist_id: int, page_size: int = 100):
     """下载整个歌单 (自动翻页)"""
-    print(c(f"📋 获取歌单信息...", "dim"))
+    print(c("📋 获取歌单信息...", "dim"))
     # 先取第一页拿去歌名和总曲数, 再取全部曲目
     result = api.playlist_detail_all(playlist_id, page_size)
     name = result["name"]

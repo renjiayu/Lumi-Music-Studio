@@ -3,7 +3,6 @@
 - 接口使用 POST + encrypted params/encSecKey
 """
 import base64
-import hashlib
 import json
 import random
 import string

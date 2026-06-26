@@ -5,7 +5,6 @@
 - 由 cli.py 的 GStreamer 管道驱动, 共用同一音频流 (tee 分流)
 """
 import os
-import time
 import threading
 from collections import deque
 

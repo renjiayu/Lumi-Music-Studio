@@ -26,15 +26,14 @@ lumi = "tui:run"
 
 [tool.setuptools.packages.find]
 where = ["."]
+
 [tool.ruff]
 target-version = "py310"
 line-length = 100
 
-# 允许的规则: 基本错误、语法、未使用变量
+[tool.ruff.lint]
 select = ["E", "F", "W"]
+ignore = ["E501", "E701", "E702", "W291"]
 
-# 忽略: 行太长（已有代码风格），无文档字符串
-ignore = ["E501", "W291"]
-
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]

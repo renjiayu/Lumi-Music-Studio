@@ -43,7 +43,7 @@ def start(cli_module):
 
             DBusGMainLoop(set_as_default=True)
             _bus = dbus.SessionBus()
-            name = dbus.service.BusName(
+            dbus.service.BusName(
                 "org.mpris.MediaPlayer2.lumi", _bus)
 
             class Player(dbus.service.Object):

@@ -3,7 +3,6 @@ UnblockNeteaseMusic 生命周期管理
 
 自动启动/停止 unblockneteasemusic 进程，为 GStreamer/请求库提供代理配置。
 """
-import os
 import subprocess
 import sys
 import threading

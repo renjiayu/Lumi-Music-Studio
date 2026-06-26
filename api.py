@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import threading
+import uuid
 from pathlib import Path
 from typing import Optional
 import requests
@@ -204,7 +205,6 @@ def auto_load_firefox_cookie() -> bool:
                 tmp = f"/tmp/ncm_cookies_{os.getpid()}_{profile.name}.sqlite"
                 shutil.copy2(str(db_path), tmp)
 
-                MUSIC_U_RESULT = "MUSIC_U"  # sentinel for regex
                 result = subprocess.run(
                     ["sqlite3", tmp,
                      "SELECT name || '=' || value FROM moz_cookies "
@@ -461,8 +461,6 @@ def user_playlist(uid: int, limit: int = 30, offset: int = 0) -> dict:
 
 
 # ========== 扫码登录 ==========
-
-import uuid
 
 def qrcode_unikey() -> Optional[str]:
     """获取二维码登录的 unikey，返回 key 或 None"""

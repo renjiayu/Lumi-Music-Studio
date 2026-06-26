@@ -236,7 +236,6 @@ def _draw_crab(win, y, x):
             state = "playing_l" if alt else "playing"
 
     frames = _CRAB.get(state, _CRAB["idle"])
-    crab_h = len(frames)
 
     for i, line in enumerate(frames):
         if i in (0, 3):

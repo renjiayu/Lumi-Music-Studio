@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import api
+from api import c
 import config
 import visualizer
 import unblock
@@ -42,7 +43,7 @@ _audio_backend = None  # "gst" or "pygame"
 try:
     import gi
     gi.require_version("Gst", "1.0")
-    from gi.repository import Gst, GLib
+    from gi.repository import Gst
     Gst.init(None)
     # 测试能否创建 playbin
     pipeline = Gst.ElementFactory.make("playbin", "test")
@@ -60,9 +61,6 @@ if _audio_backend != "gst":
         _audio_backend = "pygame"
     except Exception:
         pass
-
-
-from api import c
 
 
 def print_song(i, song, playable=None, highlight=False):
@@ -349,7 +347,7 @@ def play_next():
     while tried < len(order):
         nxt = _get_next_index()
         if nxt is None:
-            _tui_print(c(f"\n  ✓ 列表播放完毕", "dim"))
+            _tui_print(c("\n  ✓ 列表播放完毕", "dim"))
             _play_ctx = None
             state.clear()
             return
@@ -1056,7 +1054,7 @@ def do_playlist():
     if not lists:
         print(c("  ✗ 获取失败", "red"))
         return
-    print(c(f"\n  🏆 排行榜:", "bold"))
+    print(c("\n  🏆 排行榜:", "bold"))
     for i, pl in enumerate(lists[:25]):
         name = pl.get("name", "")
         desc = pl.get("description", "") or pl.get("updateFrequency", "") or ""
@@ -1105,9 +1103,7 @@ def do_qrcode_login():
     url = f"https://music.163.com/login?codekey={key}"
     try:
         import qrcode
-        from qrcode.image.pil import PilImage
-        from qrcode.image.styledpil import StyledPilImage
-        # 生成二维码 (用 pip install qrcode[pil])
+        # 生成二维码
         qr = qrcode.QRCode(border=2, box_size=1)
         qr.add_data(url)
         qr.make()
@@ -1146,7 +1142,7 @@ def do_qrcode_login():
                     break
             if music_u:
                 config.set_key("music_u", music_u)
-                print(c(f"  ✓ Cookie 已保存到配置", "green"))
+                print(c("  ✓ Cookie 已保存到配置", "green"))
             return
         elif code == 800:
             print(c("  ✗ 二维码已过期，请重试", "red"))
@@ -1315,10 +1311,10 @@ def main():
             config.set_key("unblock", not current)
             if not current:
                 unblock.start()
-                print(c(f"  ✓ UnblockNeteaseMusic 已启用", "green"))
+                print(c("  ✓ UnblockNeteaseMusic 已启用", "green"))
             else:
                 unblock.stop()
-                print(c(f"  ✗ UnblockNeteaseMusic 已停用", "yellow"))
+                print(c("  ✗ UnblockNeteaseMusic 已停用", "yellow"))
         elif cmd in ("h", "help", "?"):
             print(c("""
   命令:
