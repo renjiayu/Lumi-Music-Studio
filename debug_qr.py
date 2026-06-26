@@ -38,12 +38,12 @@ print("\n=== 2. 轮询登录状态 (每 2 秒一次, 最长 60 秒) ===")
 print("请用手机网易云 APP 扫码确认")
 print()
 
+security_done = False  # 跟踪 8821 是否已处理
+
 for i in range(30):
     r = api.qrcode_login_check(key)
     code = r.get("code", 0)
     msg = r.get("message", "")
-
-    security_done = False  # 跟踪 8821 是否已处理
 
     print(f"  [{i*2}s] code={code}", end="")
     if msg:

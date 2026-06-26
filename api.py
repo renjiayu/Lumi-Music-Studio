@@ -12,6 +12,13 @@ from pathlib import Path
 from typing import Optional
 import requests
 
+# 禁用不安全请求警告 (用于 8821 安全校验跳转, 因证书域名不匹配)
+try:
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+except ImportError:
+    pass
+
 # brotli 解压支持 (网易部分接口返回 br 压缩)
 try:
     import brotli
@@ -492,7 +499,9 @@ def qrcode_follow_redirect(redirect_url: str) -> bool:
         return False
     try:
         s = get_session()
-        r = s.get(redirect_url, headers=HEADERS, timeout=15, allow_redirects=True)
+        # 注意: 安全校验域名证书不匹配子域名, 需跳过验证
+        r = s.get(redirect_url, headers=HEADERS, timeout=15,
+                  allow_redirects=True, verify=False)
         r.raise_for_status()
         # 把跳转后 set-cookie 也保存到 jar
         save_cookie_jar()
